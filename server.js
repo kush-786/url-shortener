@@ -1,9 +1,14 @@
 import express from "express";
+import path from "node:path";
 import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
 import { createLink, getLinkByCode, incrementClicks, listLinks } from "./db.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 
 const RESERVED_CODES = new Set(["api", "dashboard"]);
 
@@ -32,6 +37,10 @@ app.post("/api/links", (req, res) => {
   res.status(201).json({ shortUrl: `/${code}`, ...link });
 });
 
+app.get("/api/links", (_req, res) => {
+  res.json(listLinks());
+});
+
 app.get("/:code", (req, res) => {
   const link = getLinkByCode(req.params.code);
   if (!link) {
@@ -39,10 +48,6 @@ app.get("/:code", (req, res) => {
   }
   incrementClicks(link.id);
   res.redirect(302, link.url);
-});
-
-app.get("/", (_req, res) => {
-  res.json({ name: "url-shortener", status: "ok", links: listLinks().length });
 });
 
 const PORT = process.env.PORT || 3000;

@@ -79,6 +79,13 @@ async function runSuite() {
   const missing = await fetch(`${BASE}/zzzz9999`, { redirect: "manual" });
   check("unknown code 404", missing.status === 404);
 
+  const home = await fetch(`${BASE}/`);
+  check("dashboard serves HTML", home.status === 200 && home.headers.get("content-type").includes("text/html"));
+
+  const list = await fetch(`${BASE}/api/links`);
+  const all = await list.json();
+  check("list endpoint returns the created link", list.ok && all.some((l) => l.code === link.code));
+
   globalThis.__testCode = link.code;
 }
 

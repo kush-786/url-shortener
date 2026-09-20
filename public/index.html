@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>URL Shortener — Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <h1 class="logo">URL<span>Shortener</span></h1>
+      <a class="btn btn-ghost" href="/login" id="loginLink">Log in</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card form-card">
+      <h2>Shorten a link</h2>
+      <form id="shortenForm" autocomplete="off">
+        <div class="row">
+          <input
+            type="url"
+            id="urlInput"
+            name="url"
+            placeholder="https://example.com/very/long/path"
+            required
+          />
+          <button type="submit" class="btn btn-primary">Shorten</button>
+        </div>
+        <p id="formError" class="form-error" hidden></p>
+      </form>
+      <p id="result" class="result" hidden>
+        Copied! Short link:
+        <a id="resultLink" href="#" target="_blank" rel="noopener"></a>
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Your links</h2>
+      <p id="emptyState" class="muted">No links yet. Shorten your first one above.</p>
+      <div id="linkList"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
