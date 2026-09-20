@@ -30,7 +30,19 @@ app.post("/api/links", (req, res) => {
   const link = { code, url: longUrl, clicks: 0, createdAt: new Date().toISOString() };
   links.set(code, link);
 
-  res.status(201).json({ shortUrl: `/r/${code}`, ...link });
+  res.status(201).json({ shortUrl: `/${code}`, ...link });
+});
+
+app.get("/:code", (req, res) => {
+  const link = links.get(req.params.code);
+  if (!link) {
+    return res.status(404).json({ error: "Short link not found." });
+  }
+  res.redirect(302, link.url);
+});
+
+app.get("/", (_req, res) => {
+  res.json({ name: "url-shortener", status: "ok" });
 });
 
 const PORT = process.env.PORT || 3000;
