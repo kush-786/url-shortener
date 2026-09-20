@@ -1,0 +1,15 @@
+{
+  "name": "url-shortener",
+  "version": "0.1.0",
+  "description": "A link shortener with dashboards, auth, and click analytics.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
