@@ -1,10 +1,11 @@
 import express from "express";
 import crypto from "node:crypto";
+import { createLink, getLinkByCode, incrementClicks, listLinks } from "./db.js";
 
 const app = express();
 app.use(express.json());
 
-const links = new Map();
+const RESERVED_CODES = new Set(["api", "dashboard"]);
 
 const randomCode = (length = 7) =>
   crypto.randomBytes(length).toString("base64url").slice(0, length);
@@ -25,24 +26,23 @@ app.post("/api/links", (req, res) => {
   }
 
   let code = randomCode();
-  while (links.has(code)) code = randomCode();
+  while (getLinkByCode(code) || RESERVED_CODES.has(code)) code = randomCode();
 
-  const link = { code, url: longUrl, clicks: 0, createdAt: new Date().toISOString() };
-  links.set(code, link);
-
+  const link = createLink({ code, url: longUrl });
   res.status(201).json({ shortUrl: `/${code}`, ...link });
 });
 
 app.get("/:code", (req, res) => {
-  const link = links.get(req.params.code);
+  const link = getLinkByCode(req.params.code);
   if (!link) {
     return res.status(404).json({ error: "Short link not found." });
   }
+  incrementClicks(link.id);
   res.redirect(302, link.url);
 });
 
 app.get("/", (_req, res) => {
-  res.json({ name: "url-shortener", status: "ok" });
+  res.json({ name: "url-shortener", status: "ok", links: listLinks().length });
 });
 
 const PORT = process.env.PORT || 3000;
