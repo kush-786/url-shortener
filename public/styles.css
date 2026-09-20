@@ -246,6 +246,31 @@ input[type="url"]:focus {
   margin-left: auto;
 }
 
+.link-clicks {
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.chart-box {
+  flex-basis: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem;
+}
+
+.chart-head {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-bottom: 0.4rem;
+}
+
+.chart-box svg {
+  width: 100%;
+  height: auto;
+}
+
 .copy-btn {
   background: transparent;
   border: 1px solid var(--border);

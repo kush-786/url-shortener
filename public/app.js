@@ -102,9 +102,22 @@ function renderLinks(links) {
     original.className = "link-original";
     original.textContent = link.url;
 
+    const count = document.createElement("span");
+    count.className = "link-clicks";
+    count.textContent = `${link.clicks} click${link.clicks === 1 ? "" : "s"}`;
+
     const created = document.createElement("span");
     created.className = "link-created";
     created.textContent = new Date(link.created_at).toLocaleDateString();
+
+    const chart = document.createElement("button");
+    chart.className = "copy-btn";
+    chart.textContent = "chart";
+    chart.addEventListener("click", async () => {
+      chart.disabled = true;
+      await renderChart(link.code, row);
+      chart.disabled = false;
+    });
 
     const copy = document.createElement("button");
     copy.className = "copy-btn";
@@ -115,9 +128,80 @@ function renderLinks(links) {
       setTimeout(() => (copy.textContent = "copy"), 1500);
     });
 
-    row.append(short, original, created, copy);
+    row.append(short, original, count, created, copy, chart);
     linkList.appendChild(row);
+
+    const chartBox = document.createElement("div");
+    chartBox.className = "chart-box";
+    chartBox.hidden = true;
+    row.appendChild(chartBox);
   }
+}
+
+function svgChart(rows, days) {
+  const W = 600;
+  const H = 160;
+  const pad = 28;
+
+  const counts = new Array(days).fill(0);
+  const labels = new Array(days).fill("");
+  const max = Math.max(1, ...rows.map((r) => r.clicks));
+
+  for (const r of rows) {
+    const idx = days - 1 - Math.round((Date.now() - new Date(r.date).getTime()) / 86400000);
+    if (idx >= 0 && idx < days) {
+      counts[idx] = r.clicks;
+      labels[idx] = r.date.slice(5);
+    }
+  }
+
+  const bw = (W - pad * 2) / days;
+  const bars = counts
+    .map((c, i) => {
+      const h = (c / max) * (H - pad * 2);
+      const x = pad + i * bw;
+      const y = H - pad - h;
+      return `<rect x="${x}" y="${y}" width="${bw - 2}" height="${h || 1}" fill="#38bdf8" rx="1"><title>${labels[i]}: ${c} clicks</title></rect>`;
+    })
+    .join("");
+
+  const daysToLabel = Math.max(1, Math.floor(days / 7));
+  const labelsSvg = counts
+    .map((_, i) =>
+      i % daysToLabel === 0
+        ? `<text x="${pad + i * bw + bw / 2}" y="${H - pad + 16}" font-size="10" fill="#94a3b8" text-anchor="middle">${labels[i]}</text>`
+        : ""
+    )
+    .join("");
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Clicks per day">
+    <line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" stroke="#334155"/>
+    ${bars}
+    ${labelsSvg}
+  </svg>`;
+}
+
+async function renderChart(code, row) {
+  const res = await api(`/api/links/${code}/analytics`);
+  if (!res.ok) return;
+  const data = await res.json();
+
+  let box = row.querySelector(".chart-box");
+  if (!box) {
+    box = document.createElement("div");
+    box.className = "chart-box";
+    row.appendChild(box);
+  }
+
+  if (box.dataset.open === "1") {
+    box.hidden = true;
+    box.dataset.open = "0";
+    return;
+  }
+
+  box.hidden = false;
+  box.dataset.open = "1";
+  box.innerHTML = `<div class="chart-head">Last 14 days · ${data.total} total clicks</div>` + svgChart(data.daily, 14);
 }
 
 async function loadLinks() {

@@ -3,7 +3,7 @@ import express from "express";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { createLink, getLinkByCode, incrementClicks, listLinks } from "./db.js";
+import { createLink, getLinkByCode, incrementClicks, listLinks, dailyClicks, logClick } from "./db.js";
 import { AUTH_ENABLED, supabase, requireAuth, bearerToken } from "./auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -83,12 +83,29 @@ app.get("/api/links", requireAuth, (req, res) => {
   res.json(listLinks({ userId: req.user?.id ?? null }));
 });
 
+app.get("/api/links/:code/analytics", requireAuth, (req, res) => {
+  const link = getLinkByCode(req.params.code);
+  if (!link) {
+    return res.status(404).json({ error: "Short link not found." });
+  }
+  if (AUTH_ENABLED && req.user && link.user_id && link.user_id !== req.user.id) {
+    return res.status(403).json({ error: "You do not own this link." });
+  }
+  res.json({
+    code: link.code,
+    url: link.url,
+    total: link.clicks,
+    daily: dailyClicks(link.code),
+  });
+});
+
 app.get("/:code", (req, res) => {
   const link = getLinkByCode(req.params.code);
   if (!link) {
     return res.status(404).json({ error: "Short link not found." });
   }
   incrementClicks(link.id);
+  logClick(link.code, link.user_id);
   res.redirect(302, link.url);
 });
 

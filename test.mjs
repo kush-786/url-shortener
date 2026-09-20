@@ -74,6 +74,20 @@ async function runSuite() {
   const redirect = await fetch(`${BASE}${link.shortUrl}`, { redirect: "manual" });
   check("short link redirects", redirect.status === 302 && redirect.headers.get("location") === "https://example.com/a/b?q=1");
 
+  const config = await (await fetch(`${BASE}/api/config`)).json();
+  if (config.authEnabled) {
+    console.log("SKIP  analytics test — needs auth, run without Supabase creds to cover it");
+  } else {
+    for (let i = 0; i < 3; i++) {
+      await fetch(`${BASE}${link.shortUrl}`, { redirect: "manual" });
+    }
+    await new Promise((r) => setTimeout(r, 300));
+    const analytics = await (await fetch(`${BASE}/api/links/${link.code}/analytics`)).json();
+    check("analytics reports total clicks", analytics.total === 4, `total=${analytics.total}`);
+    const today = new Date().toISOString().slice(0, 10);
+    check("analytics has a row for today", analytics.daily.some((d) => d.date === today));
+  }
+
   await new Promise((r) => setTimeout(r, 300));
 
   const missing = await fetch(`${BASE}/zzzz9999`, { redirect: "manual" });
