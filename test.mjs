@@ -89,9 +89,61 @@ async function runSuite() {
   globalThis.__testCode = link.code;
 }
 
+async function runAuthSuite() {
+  const config = await (await fetch(`${BASE}/api/config`)).json();
+  if (!config.authEnabled) {
+    console.log("SKIP  auth tests — SUPABASE_URL/SUPABASE_ANON_KEY not set");
+    return;
+  }
+
+  const emailA = `alice-${Date.now()}@test.local`;
+  const emailB = `bob-${Date.now()}@test.local`;
+  const password = "supersecret123";
+
+  for (const email of [emailA, emailB]) {
+    const signup = await fetch(`${BASE}/api/auth/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    check(`signup ${email.split("@")[0]}`, signup.status === 201);
+  }
+
+  async function login(email) {
+    const res = await fetch(`${BASE}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    check(`login ${email.split("@")[0]} works`, res.ok && data.session?.access_token);
+    return data.session.access_token;
+  }
+
+  const tokenA = await login(emailA);
+  const tokenB = await login(emailB);
+
+  const noToken = await fetch(`${BASE}/api/links`);
+  check("links require auth", noToken.status === 401);
+
+  const createdA = await fetch(`${BASE}/api/links`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenA}` },
+    body: JSON.stringify({ url: "https://example.org/alice-only" }),
+  });
+  check("authed user A can create", createdA.status === 201);
+
+  const listA = await (await fetch(`${BASE}/api/links`, { headers: { Authorization: `Bearer ${tokenA}` } })).json();
+  check("user A sees own link", listA.some((l) => l.url === "https://example.org/alice-only"));
+
+  const listB = await (await fetch(`${BASE}/api/links`, { headers: { Authorization: `Bearer ${tokenB}` } })).json();
+  check("user B cannot see A's link", !listB.some((l) => l.url === "https://example.org/alice-only"));
+}
+
 try {
   await startServer();
   await runSuite();
+  await runAuthSuite();
   await stopServer();
 
   await startServer();

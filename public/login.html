@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log in — URL Shortener</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo logo-link" href="/">URL<span>Shortener</span></a>
+    </div>
+  </header>
+
+  <main class="container auth-wrap">
+    <section class="card auth-card">
+      <h2 id="authTitle">Log in</h2>
+      <p id="authSub" class="muted">Welcome back — manage your links.</p>
+
+      <form id="authForm">
+        <label class="field">
+          <span>Email</span>
+          <input type="email" id="emailInput" autocomplete="email" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" id="passwordInput" autocomplete="current-password" required />
+        </label>
+        <p id="authError" class="form-error" hidden></p>
+        <button type="submit" id="authButton" class="btn btn-primary btn-block">Log in</button>
+      </form>
+
+      <p class="muted auth-toggle">
+        <span id="toggleText">No account?</span>
+        <button type="button" id="toggleButton" class="link-button">Sign up</button>
+      </p>
+    </section>
+  </main>
+
+  <script src="vendor/supabase.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>

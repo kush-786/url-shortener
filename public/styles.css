@@ -137,6 +137,77 @@ input[type="url"]:focus {
   color: var(--muted);
 }
 
+.account-email {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-right: 0.8rem;
+}
+
+.logo-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.auth-wrap {
+  max-width: 420px;
+  padding-block: 3rem;
+  display: block;
+}
+
+.auth-card h2 {
+  font-size: 1.35rem;
+}
+
+.field {
+  display: block;
+  margin-bottom: 0.9rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.field span {
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.field input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.field input:focus {
+  outline: 2px solid var(--accent-dark);
+  border-color: var(--accent);
+}
+
+.btn-block {
+  width: 100%;
+  margin-top: 0.4rem;
+}
+
+.auth-toggle {
+  margin-top: 1rem;
+  font-size: 0.92rem;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
 .link-row {
   display: flex;
   align-items: center;
