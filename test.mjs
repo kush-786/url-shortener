@@ -51,21 +51,44 @@ async function stopServer() {
   server = null;
 }
 
-function post(url, body) {
+function post(url, body, token) {
   return fetch(`${BASE}/api/links`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify(body),
   });
+}
+
+async function getToken(email, password) {
+  const signup = await fetch(`${BASE}/api/auth/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!signup.ok) throw new Error(`signup failed: ${(await signup.json()).error || signup.status}`);
+  const login = await fetch(`${BASE}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await login.json();
+  if (!login.ok || !data.session?.access_token) throw new Error("login failed");
+  return data.session.access_token;
 }
 
 async function runSuite() {
   await waitForServer();
 
-  const bad = await post("", { url: "not-a-url" });
+  const config = await (await fetch(`${BASE}/api/config`)).json();
+  let token = null;
+  if (config.authEnabled) {
+    token = await getToken(`suite-${Date.now()}@gmail.com`, "supersecret123");
+  }
+
+  const bad = await post("", { url: "not-a-url" }, token);
   check("invalid URL rejected", bad.status === 400);
 
-  const good = await post("", { url: "https://example.com/a/b?q=1" });
+  const good = await post("", { url: "https://example.com/a/b?q=1" }, token);
   check("valid URL creates link", good.status === 201);
   const link = await good.json();
   check("response has shortUrl", typeof link.shortUrl === "string" && link.shortUrl.startsWith("/"));
@@ -74,9 +97,9 @@ async function runSuite() {
   const redirect = await fetch(`${BASE}${link.shortUrl}`, { redirect: "manual" });
   check("short link redirects", redirect.status === 302 && redirect.headers.get("location") === "https://example.com/a/b?q=1");
 
-  const config = await (await fetch(`${BASE}/api/config`)).json();
   if (config.authEnabled) {
-    console.log("SKIP  analytics test — needs auth, run without Supabase creds to cover it");
+    const anonAnalytics = await fetch(`${BASE}/api/links/${link.code}/analytics`);
+    check("analytics requires auth", anonAnalytics.status === 401);
   } else {
     for (let i = 0; i < 3; i++) {
       await fetch(`${BASE}${link.shortUrl}`, { redirect: "manual" });
@@ -96,7 +119,7 @@ async function runSuite() {
   const home = await fetch(`${BASE}/`);
   check("dashboard serves HTML", home.status === 200 && home.headers.get("content-type").includes("text/html"));
 
-  const list = await fetch(`${BASE}/api/links`);
+  const list = await fetch(`${BASE}/api/links`, token ? { headers: { Authorization: `Bearer ${token}` } } : {});
   const all = await list.json();
   check("list endpoint returns the created link", list.ok && all.some((l) => l.code === link.code));
 
@@ -110,8 +133,8 @@ async function runAuthSuite() {
     return;
   }
 
-  const emailA = `alice-${Date.now()}@test.local`;
-  const emailB = `bob-${Date.now()}@test.local`;
+  const emailA = `alice-${Date.now()}@gmail.com`;
+  const emailB = `bob-${Date.now()}@gmail.com`;
   const password = "supersecret123";
 
   for (const email of [emailA, emailB]) {
@@ -140,18 +163,24 @@ async function runAuthSuite() {
   const noToken = await fetch(`${BASE}/api/links`);
   check("links require auth", noToken.status === 401);
 
-  const createdA = await fetch(`${BASE}/api/links`, {
+  const createdAres = await fetch(`${BASE}/api/links`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenA}` },
     body: JSON.stringify({ url: "https://example.org/alice-only" }),
   });
-  check("authed user A can create", createdA.status === 201);
+  const createdA = await createdAres.json();
+  check("authed user A can create", createdAres.status === 201);
 
   const listA = await (await fetch(`${BASE}/api/links`, { headers: { Authorization: `Bearer ${tokenA}` } })).json();
   check("user A sees own link", listA.some((l) => l.url === "https://example.org/alice-only"));
 
   const listB = await (await fetch(`${BASE}/api/links`, { headers: { Authorization: `Bearer ${tokenB}` } })).json();
   check("user B cannot see A's link", !listB.some((l) => l.url === "https://example.org/alice-only"));
+
+  const analyticsA = await fetch(`${BASE}/api/links/${createdA.code}/analytics`, { headers: { Authorization: `Bearer ${tokenA}` } });
+  check("owner A can view analytics", analyticsA.ok);
+  const analyticsB = await fetch(`${BASE}/api/links/${createdA.code}/analytics`, { headers: { Authorization: `Bearer ${tokenB}` } });
+  check("user B cannot view A's analytics", analyticsB.status === 403);
 }
 
 try {
