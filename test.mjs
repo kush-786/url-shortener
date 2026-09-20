@@ -92,7 +92,7 @@ async function runSuite() {
   check("valid URL creates link", good.status === 201);
   const link = await good.json();
   check("response has shortUrl", typeof link.shortUrl === "string" && link.shortUrl.startsWith("/"));
-  check("code is unique string", typeof link.code === "string" && link.code.length > 0);
+  check("code is unique string", typeof link.code === "string" && link.code.length === 4);
 
   const redirect = await fetch(`${BASE}${link.shortUrl}`, { redirect: "manual" });
   check("short link redirects", redirect.status === 302 && redirect.headers.get("location") === "https://example.com/a/b?q=1");

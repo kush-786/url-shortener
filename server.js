@@ -16,7 +16,7 @@ const RESERVED_CODES = new Set(["api", "dashboard", "login"]);
 
 const CODE_PATTERN = /^[A-Za-z0-9_-]{4,11}$/;
 
-const randomCode = (length = 7) =>
+const randomCode = (length = 4) =>
   crypto.randomBytes(length).toString("base64url").slice(0, length);
 
 function isValidUrl(value) {
