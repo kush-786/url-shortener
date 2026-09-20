@@ -119,6 +119,16 @@ async function runSuite() {
   const home = await fetch(`${BASE}/`);
   check("dashboard serves HTML", home.status === 200 && home.headers.get("content-type").includes("text/html"));
 
+  const login = await fetch(`${BASE}/login`);
+  check("login page serves HTML", login.status === 200 && login.headers.get("content-type").includes("text/html"));
+
+  const favicon = await fetch(`${BASE}/favicon.ico`);
+  const favBody = await favicon.text();
+  check("favicon does not hit link lookup", favicon.status !== 200 || !favBody.includes("Short link not found"));
+
+  const stray = await fetch(`${BASE}/does-not-exist`);
+  check("unknown page gets generic 404", stray.status === 404 && (await stray.text()).includes("Not found"));
+
   const list = await fetch(`${BASE}/api/links`, token ? { headers: { Authorization: `Bearer ${token}` } } : {});
   const all = await list.json();
   check("list endpoint returns the created link", list.ok && all.some((l) => l.code === link.code));
